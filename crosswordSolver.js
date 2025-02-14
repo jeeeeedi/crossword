@@ -1,21 +1,11 @@
 function crosswordSolver(puzzle, words) {
 
-    //errors:
-    //ok look for numbers not 0, if the total is not eq to the number of words, then error
-    //ok no repeated words
-    //ok puzzle != ''
-    //ok puzzle should contain only numbers, '.', '\n'
-    //ok word should be an array of strings containing only letters
-    //unique solution?
-
     //if number is not 0, that is a starting point.
     //indexN: need to count how many words have the same first letter.
     //number != 0 look for a match with indexN
     //if you encounter another nonzero, check if that letter could be a starting letter, and check if it has the right qty
     //if not, go back and try another; if you cant find others, error
     //
-
-
 
     let nonzeroes = getNonzeroes(puzzle);
 
@@ -24,6 +14,7 @@ function crosswordSolver(puzzle, words) {
         sumNonzeroes(nonzeroes) === words.length &&
         hasNoDupes(words) &&
         isTwoOrLess(nonzeroes)) {
+        stringToTwoDArray(puzzle);
         return solve(puzzle, words);
     } else {
         //return new Error();
@@ -31,6 +22,15 @@ function crosswordSolver(puzzle, words) {
     }
 
 }
+
+
+//errors:
+//ok look for numbers not 0, if the total is not eq to the number of words, then error
+//ok no repeated words
+//ok puzzle != ''
+//ok puzzle should contain only numbers, '.', '\n'
+//ok word should be an array of strings containing only letters
+//unique solution?
 
 function isNotEmpty(x) {
     if (x.length === 0) {
@@ -92,6 +92,13 @@ function hasNoDupes(words) {
     }
     return true; // No duplicates
 }
+
+function stringToTwoDArray(puzzle) {
+    let twoD = puzzle.split("\n").map(line => line.split(""));
+    //console.log(twoD)
+    return twoD;
+}
+
 
 function solve(puzzle, words) {
     let result = '';
