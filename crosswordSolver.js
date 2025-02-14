@@ -9,21 +9,12 @@ function crosswordSolver(puzzle, words) {
         isTwoOrLess(nonzeroes)) {
         let grid = createGrid(puzzle);
         findBlanks(grid, words);
-
-        return solve(puzzle, words);
+        return solve(grid);
     } else {
         return "Error";
     }
 
 }
-
-//errors:
-//ok- look for numbers not 0, if the total is not eq to the number of words, then error
-//ok- no repeated words
-//ok- puzzle != ''
-//ok- puzzle should contain only numbers, '.', '\n'
-//ok- word should be an array of strings containing only letters
-//unique solution?
 
 function isNotEmpty(x) {
     if (x.length === 0) {
@@ -92,17 +83,8 @@ function hasNoDupes(words) {
     return true; // No duplicates
 }
 
-//algorigthm:
-//if number is not 0, that is a starting point.
-//indexN: need to count how many words have the same first letter.
-//number != 0 look for a match with indexN
-//if you encounter another nonzero, check if that letter could be a starting letter, and check if it has the right qty
-//if not, go back and try another; if you cant find others, error --- backtracking?
-//
-
 function createGrid(puzzle) {
     let grid = puzzle.split("\n").map(line => line.split(""));
-    console.log(grid);
     return grid;
 }
 
@@ -110,10 +92,8 @@ function findBlanks(grid, words) {
     for (let y = 0; y < grid.length; y++) {
         for (let x = 0; x < grid[y].length; x++) {
             if (grid[y][x][0] === '2') {
-                console.log("2 at:", x, y);
                 findBlankLength(grid, '2', x, y, words)
             } else if (grid[y][x][0] === '1') {
-                console.log("1 at:", x, y);
                 findBlankLength(grid, '1', x, y, words)
             }
         }
@@ -127,28 +107,29 @@ function findBlankLength(grid, int, x, y, words) {
     let goDown = false;
     let originalX = x;
     let originalY = y;
+
     if (int === '1') {
-        if (originalX - 1 >= 0 && grid[originalY][originalX - 1][0] !== '.') {//check if left is nums
-            if (originalY - 1 >= 0 && grid[originalY - 1][originalX][0] !== '.') { //check up
+        if (originalX - 1 >= 0 && grid[originalY][originalX - 1] && grid[originalY][originalX - 1][0] !== '.') {//check if left is nums
+            if (originalY - 1 >= 0 && grid[originalY - 1][originalX] && grid[originalY - 1][originalX][0] !== '.') { //check up
                 return "Error";
-            } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
+            } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX] && grid[originalY + 1][originalX][0] !== '.') { //check down
                 goDown = true;
             } else {
                 return "Error";
             }
-        } else if (originalY - 1 >= 0 && grid[originalY - 1][originalX][0] !== '.') {//check if up is nums
-            if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1][0] !== '.') { //check right
+        } else if (originalY - 1 >= 0 && grid[originalY - 1][originalX] && grid[originalY - 1][originalX][0] !== '.') {//check if up is nums
+            if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1] && grid[originalY][originalX + 1][0] !== '.') { //check right
                 goRight = true;
             } else {
                 return "Error";
             }
-        } else if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1][0] !== '.') {//check right
-            if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
+        } else if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1] && grid[originalY][originalX + 1][0] !== '.') {//check right
+            if (originalY + 1 < grid.length && grid[originalY + 1][originalX] && grid[originalY + 1][originalX][0] !== '.') { //check down
                 return "Error";
             } else {
                 goRight = true;
             }
-        } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
+        } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX] && grid[originalY + 1][originalX][0] !== '.') { //check down
             goDown = true;
         } else {
             return "Error";
@@ -218,7 +199,8 @@ function findBlankLength(grid, int, x, y, words) {
 
 function matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, originalY) {
     let findPair = false;
-    let matchLetter = "";
+    let appendedLetter = grid[originalY][originalX].length === 2 ? grid[originalY][originalX][1] : null;
+    let tempWords = words;
 
     if (xBlankLength !== 0 && yBlankLength !== 0) {
         findPair = true;
@@ -227,39 +209,55 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, ori
     let xMatch = "";
     let yMatch = "";
 
-    for (let i = 0; i < words.length; i++) {
-        if (words[i].length === xBlankLength && xMatch === "") {
-            console.log("matches x: ", words[i]);
-            if (findPair) {
-                matchLetter = words[i][0];
+    //go thru each word, find the one that matches the length of the blank
+    for (let i = 0; i < tempWords.length; i++) {
+        if (appendedLetter && tempWords[i][0] !== appendedLetter) {
+            continue; // Skip words that don't match the appended letter
+        }
+        if (tempWords[i].length === xBlankLength && xMatch === "") { //if going right
+            if (findPair) { //if 2
+                matchLetter = tempWords[i][0];
             }
-            xMatch = words[i];
-            words = words.filter(word => word !== words[i]);
-        } else if (words[i].length === yBlankLength && yMatch === "") {
-            if (findPair && (matchLetter === words[i][0])) {
-                console.log("matches y: ", words[i]);
-                yMatch = words[i];
-                words = words.filter(word => word !== words[i]);
-            } else if (!findPair) {
-                console.log("matches y: ", words[i]);
-                yMatch = words[i];
-                words = words.filter(word => word !== words[i]);
+            if (canFit(tempWords[i], grid, originalX, originalY, "horizontal")) {
+                xMatch = tempWords[i];
+            }
+            tempWords = tempWords.filter(word => word !== tempWords[i]);
+        } else if (tempWords[i].length === yBlankLength && yMatch === "") { //if going down
+            if (findPair && (matchLetter === tempWords[i][0])) { //if 2
+                if (canFit(tempWords[i], grid, originalX, originalY, "vertical")) {
+                    yMatch = tempWords[i];
+                }
+                tempWords = tempWords.filter(word => word !== tempWords[i]);
+            } else if (!findPair) { //if 1
+                if (canFit(tempWords[i], grid, originalX, originalY, "vertical")) {
+                    yMatch = tempWords[i];
+                }
+                tempWords = tempWords.filter(word => word !== tempWords[i]);
             }
         }
         if ((yMatch !== "") && !findPair) {
-            console.log("Matched down:", yMatch);
             break;
         } else if ((xMatch !== "") && !findPair) {
-            console.log("Matched right: ", xMatch);
             break;
         } else if (xMatch !== "" && yMatch !== "" && findPair) {
-            console.log("Pair:");
-            console.log(xMatch);
-            console.log(yMatch);
             break;
         }
     }
 
+    // If there's a letter in the slot, find a word that starts with that letter
+    if (grid[originalY][originalX].length === 2) {
+        let appendedLetter = grid[originalY][originalX][1];
+        let foundWord = findRightWord(grid, originalX, originalY, tempWords);
+        if (foundWord) {
+            xMatch = foundWord;
+        }
+    }
+
+    appendLetters(grid, xBlankLength, yBlankLength, originalX, originalY, xMatch, yMatch);
+}
+
+function appendLetters(grid, xBlankLength, yBlankLength, originalX, originalY, xMatch, yMatch) {
+    //append letters to the nums/blanks
     let x = originalX;
     let y = originalY;
     let wordInd = 0;
@@ -284,39 +282,63 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, ori
         }
     }
 
-    //  Call recursive func here
+    //  Call recursive func here???
+}
 
-    console.log(words)
-    console.log(grid)
+function findRightWord(grid, x, y, words, direction) {
+    let startingLetter = grid[y][x][1]; // The already assigned letter
+    let possibleWords = words.filter(word => word[0] === startingLetter);
+    for (let word of possibleWords) {
+        if (canFit(grid, x, y, word, direction)) {
+            return word;
+        }
+    }
+
+    return null; // No valid word found
+}
+
+function canFit(word, grid, x, y, direction) {
+    let length = word.length;
+
+    if (direction === "horizontal") {
+        if (x + length > grid[y].length) return false; // Out of bounds
+
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y][x + i];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    } else if (direction === "vertical") {
+        if (y + length > grid.length) return false; // Out of bounds
+
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y + i][x];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    }
+
+    return true;
 }
 
 
-
-//partial solution putting characters into blanks
-function solve(puzzle, words) {
-    let result = '';
-    let wordIndex = 0;
-    let charIndex = 0;
-
-    let isNum = /[0-9]/g;
-
-    for (let p = 0; p < puzzle.length; p++) {
-        if (puzzle[p].match(isNum)) {
-            let num = Number(puzzle[p]);
-            if (num >= 0 && wordIndex < words.length) {
-                result += words[wordIndex][charIndex];
-                charIndex++;
-                if (charIndex >= words[wordIndex].length) {
-                    wordIndex++;
-                    charIndex = 0;
-                }
-            } else {
-                result += puzzle[p];
+//put letters into nums
+function solve(grid) {
+    let result = "";
+    for (let g = 0; g < grid.length; g++) {
+        for (let i = 0; i < grid[g].length; i++) {
+            if (grid[g][i][0] === '0' || grid[g][i][0] === '1' || grid[g][i][0] === '2') {
+                grid[g][i] = grid[g][i][1];
             }
-        } else {
-            result += puzzle[p];
+            result += grid[g][i];
+        }
+        if (g !== grid.length - 1) {
+            result += "\n";
         }
     }
+    
     return result;
 }
 
@@ -360,7 +382,7 @@ const words2 = [
 ]
 
 console.log(crosswordSolver(puzzle1, words1));
-//console.log(crosswordSolver(puzzle2, words2));
+console.log(crosswordSolver(puzzle2, words2));
 
 //export to test
 module.exports = { crosswordSolver };
