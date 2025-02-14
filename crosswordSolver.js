@@ -284,7 +284,7 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, ori
         }
     }
 
-    //  Call recursive shit here
+    //  Call recursive func here
 
     console.log(words)
     console.log(grid)
