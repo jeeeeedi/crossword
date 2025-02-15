@@ -1,7 +1,7 @@
+global.solutions = []
+
 function crosswordSolver(puzzle, words) {
-
     let nonzeroes = getNonzeroes(puzzle.toString());
-
     if (isNotEmpty(puzzle) && isNotEmpty(words) &&
         isPuzzleCharsOk(puzzle) && isWordsCharsOk(words) &&
         sumNonzeroes(nonzeroes) === words.length &&
@@ -11,6 +11,9 @@ function crosswordSolver(puzzle, words) {
         let start = [0, 0]
         let finalGrid = findBlanks(grid, words, start)[1];
         //console.log("Final solution:", finalGrid)
+        if (global.solutions.length > 1) {
+            return "Error"
+        }
         return solve(finalGrid);
     } else {
         return "Error";
@@ -102,8 +105,7 @@ function findBlanks(grid, words, startAt) {
             } else if (output === "Error") {
                 return "Error"
             } else if (output[0] === "Done") {
-                //console.log("Done")
-                return output
+                global.solutions.push(output)
             } else {
                 grid = output
             }
@@ -111,7 +113,11 @@ function findBlanks(grid, words, startAt) {
         x = 0
     }
     if (words.length === 0) {
-        return ["Done", grid]
+        global.solutions.push(["Done", grid])
+        if (global.solutions.length > 1) {
+            return "Error"
+        }
+        return 
     } else {
         //console.log("Returning from findBlanks")
         return "Error"
