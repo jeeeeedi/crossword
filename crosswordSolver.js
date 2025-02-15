@@ -91,21 +91,21 @@ function createGrid(puzzle) {
 
 function findBlanks(grid, words, startAt) {
     //  Added startAt for not looking at the same number forever (move to the word to be matched)
-    let y = startAt[0]
-    let x = startAt[1]
+    let x = startAt[0]
+    let y = startAt[1]
     console.log("findBlanks running on grid:", grid, "x:", x, "y:", y)
     for (let _; y < grid.length; y++) {
-        console.log(grid[y], "hello")
         for (let _; x < grid[y].length; x++) {
-            let output = findBlankLength(grid, words, grid[y][x][0], x, y)
+            output = findBlankLength(grid, words, grid[y][x][0], x, y)
             if (output === "Not Num") {
                 continue
             } else if (output === "Error") {
-                return
+                return "Error"
             } else {
                 grid = output
             }
         }
+        x = 0
     }
     return grid
 }
@@ -122,33 +122,50 @@ function findBlankLength(grid, words, n, x, y) {
     let isRightNum = ((x + 1 < grid[y].length) && grid[y][x + 1] && grid[y][x + 1] !== '.') ? true : false;
     let isDownNum = ((y + 1 < grid.length) && grid[y + 1][x] && grid[y + 1][x] !== '.') ? true : false;
 
-    if (isLeftNum && isUpNum) {
-        return "Error"
-    }
-
     if (n === '1') {
+        if (isLeftNum && isUpNum) {
+            return "Error"
+        }
         if (!isUpNum && isDownNum) {
             yBlankLength = counter(grid, x, y, tempX, tempY, "goDown");
             console.log("For position", x, y)
             console.log("yBlankLength =", yBlankLength)
             console.log("xBlankLength =", xBlankLength)
-            grid = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+            output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+            if (output === "Error") {
+                return "Error";
+            } else {
+                grid = output
+            }
         } else if (!isLeftNum && isRightNum) {
             xBlankLength = counter(grid, x, y, tempX, tempY, "goRight");
             console.log("For position", x, y)
             console.log("yBlankLength =", yBlankLength)
             console.log("xBlankLength =", xBlankLength)
-            grid = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+            output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+            if (output === "Error") {
+                return "Error";
+            } else {
+                grid = output
+            }
         } else {
             return "Error";
         }
     } else if (n === '2') {
+        if (isLeftNum || isUpNum) {
+            return "Error"
+        }
         xBlankLength = counter(grid, x, y, tempX, tempY, "goRight");
         yBlankLength = counter(grid, x, y, tempX, tempY, "goDown");
         console.log("For position", x, y)
         console.log("yBlankLength =", yBlankLength)
         console.log("xBlankLength =", xBlankLength)
-        grid = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+        output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
+        if (output === "Error") {
+            return "Error";
+        } else {
+            grid = output
+        }
     } else {
         return "Not Num"
     }
@@ -197,11 +214,17 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
         if (xBlankLength !== 0) {
             console.log("Matching word horizontally at:", x, y)
             let foundWord = findRightWord(grid, x, y, tempWords, "horizontal");
+            if (typeof foundWord !== "string") {
+                return "Error"
+            }
             xMatch = foundWord;
             tempWords = tempWords.filter(word => word !== foundWord);
         } else if (yBlankLength !== 0) {
             console.log("Matching word vertically at:", x, y)
             let foundWord = findRightWord(grid, x, y, tempWords, "vertical");
+            if (typeof foundWord !== "string") {
+                return "Error"
+            }
             yMatch = foundWord;
             tempWords = tempWords.filter(word => word !== foundWord);
         }
@@ -263,7 +286,7 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
     console.log("running findBlanks again...")
     console.log("nextStart:", nextStart)
     console.log("tempWords:", tempWords)
-    findBlanks(grid, tempWords, nextStart)
+    return findBlanks(grid, tempWords, nextStart)
 }
 
 function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
@@ -394,7 +417,7 @@ const words2 = [
 ]
 
 console.log(crosswordSolver(puzzle1, words1));
-//console.log(crosswordSolver(puzzle2, words2));
+console.log(crosswordSolver(puzzle2, words2));
 
 //export to test
 module.exports = { crosswordSolver };
