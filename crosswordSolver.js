@@ -1,6 +1,7 @@
 global.solutions = []
 
 function crosswordSolver(puzzle, words) {
+    solutions = []
     let nonzeroes = getNonzeroes(puzzle.toString());
     if (isNotEmpty(puzzle) && isNotEmpty(words) &&
         isPuzzleCharsOk(puzzle) && isWordsCharsOk(words) &&
@@ -9,12 +10,16 @@ function crosswordSolver(puzzle, words) {
         isTwoOrLess(nonzeroes)) {
         let grid = createGrid(puzzle);
         let start = [0, 0]
-        let finalGrid = findBlanks(grid, words, start)[1];
+        findBlanks(grid, words, start);
         //console.log("Final solution:", finalGrid)
-        if (global.solutions.length > 1) {
+        for (let i = 0; i < solutions.length; i++) {
+            console.log(solve(solutions[i][1]));
+        }
+        if (solutions.length === 1) {
+            return solve(solutions[0][1]);
+        } else {
             return "Error"
         }
-        return solve(finalGrid);
     } else {
         return "Error";
     }
@@ -104,8 +109,6 @@ function findBlanks(grid, words, startAt) {
                 continue
             } else if (output === "Error") {
                 return "Error"
-            } else if (output[0] === "Done") {
-                global.solutions.push(output)
             } else {
                 grid = output
             }
@@ -113,13 +116,8 @@ function findBlanks(grid, words, startAt) {
         x = 0
     }
     if (words.length === 0) {
-        global.solutions.push(["Done", grid])
-        if (global.solutions.length > 1) {
-            return "Error"
-        }
-        return 
+        solutions.push(["Done", grid])
     } else {
-        //console.log("Returning from findBlanks")
         return "Error"
     }
 }
@@ -156,8 +154,6 @@ function findBlankLength(grid, words, n, x, y) {
             let output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
             if (output === "Error") {
                 return "Error";
-            } else if (output[0] === "Done") {
-                return output
             } else {
                 grid = output
             }
@@ -167,8 +163,6 @@ function findBlankLength(grid, words, n, x, y) {
             let output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
             if (output === "Error") {
                 return "Error";
-            } else if (output[0] === "Done") {
-                return output
             } else {
                 grid = output
             }
@@ -185,8 +179,6 @@ function findBlankLength(grid, words, n, x, y) {
         let output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
         if (output === "Error") {
             return "Error";
-        } else if (output[0] === "Done") {
-            return output
         } else {
             grid = output
         }
@@ -370,9 +362,6 @@ function recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, 
     //console.log("With remaining words:", newWords)
     let output = findBlanks(newGrid, newWords, newNextStart)
     //console.log("Backtracking")
-    if (output[0] === "Done") {
-        return output
-    }
     //console.log("Returning Error")
     return "Error"
 }
@@ -549,8 +538,8 @@ const words12 = ['aaab', 'aaac', 'aaad', 'aaae']
 //console.log(crosswordSolver(puzzle8, words8)); //Outputs Error correctly
 //console.log(crosswordSolver(puzzle9, words9)); //Outputs Error correctly
 //console.log(crosswordSolver(puzzle10, words10)); //Outputs Error correctly
-console.log(crosswordSolver(puzzle11, words11)); //DOES NOT WORK (Multiple solutions still works)
-console.log(crosswordSolver(puzzle12, words12)); //DOES NOT WORK (Multiple solutions still works)
+//console.log(crosswordSolver(puzzle11, words11)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle12, words12)); //Outputs Error correctly
 
 //export to test
 module.exports = { crosswordSolver };
