@@ -123,6 +123,8 @@ function findBlankLength(grid, words, n, x, y) {
     } else if (n === '2') {
         xBlankLength = counter(grid, x, y, tempX, tempY, "goRight");
         yBlankLength = counter(grid, x, y, tempX, tempY, "goDown");
+    } else {
+        return "Not Num"
     }
     matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
 }
@@ -150,32 +152,6 @@ function counter(grid, x, y, tempX, tempY, direction) {
     return count;
 }
 
-/* function checkLetters(word, ) {
-    //loop thru grid, find 
-    let tempX = x
-    let tempY = y
-    let wordInd = 0
-    //  grid[y][x][0]
-
-    if (xBlankLength > 0) {
-        for (let _; x < x+xBlankLength; x++) {
-            grid[y][x] += xMatch[wordInd]
-            wordInd++
-        }
-    }
-    wordInd = 0
-    x = x
-    y = y
-    if (yBlankLength > 0) {
-        for (let _; y < y+yBlankLength; y++) {
-            if (!(wordInd === 0 && xBlankLength > 0)) {
-            grid[y][x] += yMatch[wordInd]
-            }
-            wordInd++
-        }
-    }
-} */
-
 function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
     let findPair = false;
     let appendedLetter = grid[y][x].length === 2 ? grid[y][x][1] : null;
@@ -187,7 +163,6 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
 
     let xMatch = "";
     let yMatch = "";
-
     //go thru each word, find the one that matches the length of the blank
     for (let i = 0; i < tempWords.length; i++) {
         if (appendedLetter && tempWords[i][0] !== appendedLetter) {
@@ -233,6 +208,11 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
     }
 
     appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch);
+    console.log(grid)
+    console.log(xMatch)
+    console.log(yMatch)
+    findBlanks(grid, tempWords)
+
 }
 
 function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
@@ -243,7 +223,11 @@ function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
 
     if (xBlankLength > 0) {
         for (let _; tempX < x + xBlankLength; tempX++) {
-            grid[tempY][tempX] += xMatch[wordInd];
+            if (tempX === x) {
+                grid[tempY][tempX] = xMatch[wordInd];
+            } else {
+                grid[tempY][tempX] += xMatch[wordInd];
+            }
             wordInd++;
         }
     }
@@ -254,13 +238,18 @@ function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
 
     if (yBlankLength > 0) {
         for (let _; tempY < y + yBlankLength; tempY++) {
-            if (!(wordInd === 0 && xBlankLength > 0)) {
+            if (tempY === y) {
+                grid[tempY][tempX] = yMatch[wordInd];
+            } else {
                 grid[tempY][tempX] += yMatch[wordInd];
             }
+/*             if (!(wordInd === 0 && xBlankLength > 0)) {
+                grid[tempY][tempX] += yMatch[wordInd];
+            } */
             wordInd++;
         }
     }
-
+    
     //  Call recursive func here???
 }
 
@@ -360,8 +349,34 @@ const words2 = [
     'sandals',
 ]
 
+const puzzle3 = `..1.1..1...
+10000..1000
+..0.0..0...
+..1000000..
+..0.0..0...
+1000..10000
+..0.1..0...
+....0..0...
+..100000...
+....0..0...
+....0......`
+
+const words3 = [
+  'popcorn',
+  'fruit',
+  'flour',
+  'chicken',
+  'eggs',
+  'vegetables',
+  'pasta',
+  'pork',
+  'steak',
+  'cheese',
+]
+
 console.log(crosswordSolver(puzzle1, words1));
 console.log(crosswordSolver(puzzle2, words2));
+console.log(crosswordSolver(puzzle3, words3));
 
 //export to test
 module.exports = { crosswordSolver };
