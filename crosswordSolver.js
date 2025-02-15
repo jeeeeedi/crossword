@@ -10,9 +10,9 @@ function crosswordSolver(puzzle, words) {
         let start = [0, 0]
         findBlanks(grid, words, start);
         //  For checking multiple solutions:
-/*         for (let i = 0; i < global.solutions.length; i++) {
-            console.log(solve(global.solutions[i][1]));
-        } */
+        /*         for (let i = 0; i < global.solutions.length; i++) {
+                    console.log(solve(global.solutions[i][1]));
+                } */
         if (global.solutions.length === 1) {
             return solve(global.solutions[0][1]);
         } else {
@@ -22,6 +22,8 @@ function crosswordSolver(puzzle, words) {
         return "Error";
     }
 }
+
+/* ===== INPUT VALIDATION FUNCTIONS ===== */
 
 function isNotEmpty(x) {
     return x.length !== 0
@@ -87,10 +89,120 @@ function hasNoDupes(words) {
     return true; // No duplicates
 }
 
+/* ===== SMALL HELPER FUNCTIONS ===== */
+
 function createGrid(puzzle) {
     let grid = puzzle.trim().split("\n").map(line => line.split(""));
     return grid;
 }
+
+function copyArray(array, kind) {
+    var newArray = [];
+    if (kind === "grid") {
+        for (var i = 0; i < array.length; i++) {
+            newArray.push(array[i].slice());
+        }
+    } else if (kind === "start") {
+        for (var i = 0; i < array.length; i++) {
+            newArray.push(array[i]);
+        }
+    }
+    return newArray;
+}
+
+function getNextStart(x, y, grid) {
+    let nextX = x + 1
+    let nextY = y
+    if (nextX >= grid[0].length) {
+        nextY++
+        nextX = 0
+    }
+    return [nextX, nextY]
+}
+
+/* ===== SOLVING HELPERS ===== */
+
+function counter(grid, x, y, direction) {
+    let n = /[012]/g;
+    let count = 0;
+    if (direction === "goDown") {
+        for (let _; y < grid.length; y++) {
+            if (grid[y][x][0].match(n)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+    } else if (direction === "goRight") {
+        for (let _; x < grid[y].length; x++) {
+            if (grid[y][x][0].match(n)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+    }
+    return count;
+}
+
+function checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, letter) {
+    if (xBlankLength !== 0) {
+        return findRightWord(grid, x, y, tempWords, "horizontal", nextStart, xBlankLength, yBlankLength, letter);
+    } else if (yBlankLength !== 0) {
+        return findRightWord(grid, x, y, tempWords, "vertical", nextStart, xBlankLength, yBlankLength, letter);
+    }
+}
+
+function canFit(word, grid, x, y, direction) {
+    let length = word.length;
+    if (direction === "horizontal") {
+        if (x + length > grid[y].length) return false; // Out of bounds
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y][x + i];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    } else if (direction === "vertical") {
+        if (y + length > grid.length) return false; // Out of bounds
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y + i][x];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    }
+    return true;
+}
+
+function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
+    //append letters to the nums/blanks
+    let wordInd = 0;
+    let tempX = x;
+    let tempY = y;
+    if (xBlankLength > 0) {
+        for (let _; tempX < x + xBlankLength; tempX++) {
+            if (grid[tempY][tempX].length === 1) {
+                grid[tempY][tempX] += xMatch[wordInd];
+            }
+            wordInd++;
+        }
+    }
+    wordInd = 0;
+    tempX = x;
+    tempY = y;
+    if (yBlankLength > 0) {
+        for (let _; tempY < y + yBlankLength; tempY++) {
+            if (grid[tempY][tempX].length === 1) {
+                grid[tempY][tempX] += yMatch[wordInd];
+            }
+            wordInd++;
+        }
+    }
+    return grid
+}
+
+/* ===== SOLVING FUNCTIONS ===== */
 
 function findBlanks(grid, words, startAt) {
     //  Added startAt for not looking at the same number forever (move to the word to be matched)
@@ -163,68 +275,29 @@ function findBlankLength(grid, words, n, x, y) {
     return grid
 }
 
-
-
-function counter(grid, x, y, direction) {
-    let n = /[012]/g;
-    let count = 0;
-    if (direction === "goDown") {
-        for (let _; y < grid.length; y++) {
-            if (grid[y][x][0].match(n)) {
-                count++;
-            } else {
-                break;
-            }
-        }
-    } else if (direction === "goRight") {
-        for (let _; x < grid[y].length; x++) {
-            if (grid[y][x][0].match(n)) {
-                count++;
-            } else {
-                break;
-            }
-        }
-    }
-    return count;
-}
-
 function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
     let findPair = false;
     let tempWords = words;
     if (xBlankLength !== 0 && yBlankLength !== 0) {
         findPair = true;
     }
-    let nextX = x + 1
-    let nextY = y
-    if (nextX >= grid[0].length) {
-        nextY++
-        nextX = 0
-    }
-    if (nextY >= grid.length && tempWords.length === 0) {
+    nextStart = getNextStart(x, y, grid)
+    if (nextStart[1] >= grid.length && tempWords.length === 0) {
         return grid
     }
-    let nextStart = [nextX, nextY]
     // If there's a letter in the slot, find a word that starts with that letter
     if (grid[y][x].length === 2) {
-        if (xBlankLength !== 0) {
-            return findRightWord(grid, x, y, tempWords, "horizontal", nextStart, xBlankLength, yBlankLength, grid[y][x][1]);
-        } else if (yBlankLength !== 0) {
-            return findRightWord(grid, x, y, tempWords, "vertical", nextStart, xBlankLength, yBlankLength, grid[y][x][1]);
-        }
+        checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, grid[y][x][1])
     } else {
         if (!findPair) {
-            if (xBlankLength !== 0) {
-                return findRightWord(grid, x, y, tempWords, "horizontal", nextStart, xBlankLength, yBlankLength, null);
-            } else if (yBlankLength !== 0) {
-                return findRightWord(grid, x, y, tempWords, "vertical", nextStart, xBlankLength, yBlankLength, null);
-            }
+            checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, null)
         } else {
             // If we need a pair, try all combinations of two words.
             for (let i = 0; i < tempWords.length; i++) {
                 if (canFit(tempWords[i], grid, x, y, "horizontal")) {
                     for (let j = 0; j < tempWords.length; j++) {
                         if (i === j) {
-                            continue; // Skip the same word.
+                            continue;
                         }
                         if (canFit(tempWords[j], grid, x, y, "vertical")) {
                             if (tempWords[i][0] === tempWords[j][0]) {
@@ -241,33 +314,6 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
         }
     }
     return "Error"
-}
-
-function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
-    //append letters to the nums/blanks
-    let tempX = x;
-    let tempY = y;
-    let wordInd = 0;
-    if (xBlankLength > 0) {
-        for (let _; tempX < x + xBlankLength; tempX++) {
-            if (grid[tempY][tempX].length === 1) {
-                grid[tempY][tempX] += xMatch[wordInd];
-            }
-            wordInd++;
-        }
-    }
-    wordInd = 0;
-    tempX = x;
-    tempY = y;
-    if (yBlankLength > 0) {
-        for (let _; tempY < y + yBlankLength; tempY++) {
-            if (grid[tempY][tempX].length === 1) {
-                grid[tempY][tempX] += yMatch[wordInd];
-            }
-            wordInd++;
-        }
-    }
-    return grid
 }
 
 function findRightWord(grid, x, y, words, direction, nextStart, xBlankLength, yBlankLength, startingLetter) {
@@ -289,21 +335,7 @@ function findRightWord(grid, x, y, words, direction, nextStart, xBlankLength, yB
             }
         }
     }
-    return "Error"; // No valid word found
-}
-
-function copyArray(array, kind) {
-    var newArray = [];
-    if (kind === "grid") {
-        for (var i = 0; i < array.length; i++) {
-            newArray.push(array[i].slice());
-        }
-    } else if (kind === "start") {
-        for (var i = 0; i < array.length; i++) {
-            newArray.push(array[i]);
-        }
-    }
-    return newArray;
+    return "Error"
 }
 
 function recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, matches) {
@@ -311,34 +343,12 @@ function recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, 
     let newGrid = copyArray(grid, "grid")
     let newNextStart = copyArray(nextStart, "start")
     newGrid = appendLetters(newGrid, xBlankLength, yBlankLength, x, y, matches[0], matches[1]);
-    let output = findBlanks(newGrid, newWords, newNextStart)
+    findBlanks(newGrid, newWords, newNextStart)
     return "Error"
 }
 
-function canFit(word, grid, x, y, direction) {
-    let length = word.length;
-    if (direction === "horizontal") {
-        if (x + length > grid[y].length) return false; // Out of bounds
-        for (let i = 0; i < length; i++) {
-            let cell = grid[y][x + i];
-            if (cell.length > 1 && cell[1] !== word[i]) {
-                return false; // Conflict in existing letters
-            }
-        }
-    } else if (direction === "vertical") {
-        if (y + length > grid.length) return false; // Out of bounds
-        for (let i = 0; i < length; i++) {
-            let cell = grid[y + i][x];
-            if (cell.length > 1 && cell[1] !== word[i]) {
-                return false; // Conflict in existing letters
-            }
-        }
-    }
-    return true;
-}
+/* ===== FINAL FORMATTING FUNCTION ===== */
 
-
-//put letters into nums
 function solve(grid) {
     let result = "";
     for (let g = 0; g < grid.length; g++) {
