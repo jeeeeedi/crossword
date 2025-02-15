@@ -110,7 +110,12 @@ function findBlanks(grid, words, startAt) {
         }
         x = 0
     }
-    return ["Done", grid]
+    if (words.length === 0) {
+        return ["Done", grid]
+    } else {
+        console.log("Returning grid")
+        return grid
+    }
 }
 
 function findBlankLength(grid, words, n, x, y) {
@@ -208,34 +213,33 @@ function counter(grid, x, y, tempX, tempY, direction) {
 
 function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
     let findPair = false;
+    let matchLetter = ""
     let appendedLetter = grid[y][x].length === 2 ? grid[y][x][1] : null;
     let tempWords = words;
-
     if (xBlankLength !== 0 && yBlankLength !== 0) {
         findPair = true;
     }
-
     let xMatch = "";
     let yMatch = "";
+    let nextX = x + 1
+    let nextY = y
+    if (nextX >= grid[0].length) {
+        nextY++
+        nextX = 0
+    }
+    if (nextY >= grid.length && tempWords.length === 0) {
+        return grid
+    }
+    nextStart = [nextX, nextY]
 
     // If there's a letter in the slot, find a word that starts with that letter
     if (grid[y][x].length === 2) {
         if (xBlankLength !== 0) {
             console.log("Matching word horizontally at:", x, y)
-            let foundWord = findRightWord(grid, x, y, tempWords, "horizontal");
-            if (typeof foundWord !== "string") {
-                return "Error"
-            }
-            xMatch = foundWord;
-            tempWords = tempWords.filter(word => word !== foundWord);
+            return findRightWord(grid, x, y, tempWords, "horizontal", nextStart, xBlankLength, yBlankLength, x, y);
         } else if (yBlankLength !== 0) {
             console.log("Matching word vertically at:", x, y)
-            let foundWord = findRightWord(grid, x, y, tempWords, "vertical");
-            if (typeof foundWord !== "string") {
-                return "Error"
-            }
-            yMatch = foundWord;
-            tempWords = tempWords.filter(word => word !== foundWord);
+            return findRightWord(grid, x, y, tempWords, "vertical", nextStart, xBlankLength, yBlankLength, x, y);
         }
     } else {
         //go thru each word, find the one that matches the length of the blank
@@ -249,62 +253,56 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
                 }
                 if (canFit(tempWords[i], grid, x, y, "horizontal")) {
                     xMatch = tempWords[i];
-                    console.log("Set xMatch to:", xMatch)
                 }
             } else if (tempWords[i].length === yBlankLength && yMatch === "") { //if going down
                 if (findPair && (matchLetter === tempWords[i][0])) { //if 2
                     if (canFit(tempWords[i], grid, x, y, "vertical")) {
                         yMatch = tempWords[i];
-                        console.log("Set yMatch to:", yMatch)
                     }
                 } else if (!findPair) { //if 1
                     if (canFit(tempWords[i], grid, x, y, "vertical")) {
                         yMatch = tempWords[i];
-                        console.log("Set yMatch to:", yMatch)
                     }
                 }
             }
             if ((yMatch !== "") && !findPair) {
-                break;
+                let matches = ["", yMatch]
+                output = recurseWords(grid, tempWords, nextStart, xBlankLength, yBlankLength, x, y, matches)
+                console.log("Back in matchWordLength")
+                if (output !== "Error") {
+                    return output
+                }
+                yMatch = ""
             } else if ((xMatch !== "") && !findPair) {
-                break;
+                let matches = [xMatch, ""]
+                output = recurseWords(grid, tempWords, nextStart, xBlankLength, yBlankLength, x, y, matches)
+                console.log("Back in matchWordLength")
+                if (output !== "Error") {
+                    return output
+                }
+                xMatch = ""
             } else if (xMatch !== "" && yMatch !== "" && findPair) {
-                break;
+                let matches = [xMatch, yMatch]
+                output = recurseWords(grid, tempWords, nextStart, xBlankLength, yBlankLength, x, y, matches)
+                console.log("Back in matchWordLength")
+                if (output !== "Error") {
+                    return output
+                }
+                yMatch = ""
+                xMatch = ""
             }
         }
     }
-    if (xMatch === null || yMatch === null) {
+/*     if (xMatch === null || yMatch === null) {
         return "Error"
     }
     if (xBlankLength > 0 && xMatch === "") {
-        return "Error"; // or handle backtracking
+        return "Error";
     }
     if (yBlankLength > 0 && yMatch === "") {
-        return "Error"; // or handle backtracking
-    }
-    tempWords = tempWords.filter(word => (word !== xMatch && word !== yMatch));
-    appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch);
-    console.log("findPair:", findPair)
-    console.log("xMatch:", xMatch)
-    console.log("yMatch:", yMatch)
-    console.log(grid)
-
-    let nextX = x + 1
-    let nextY = y
-    if (nextX >= grid[0].length) {
-        nextY++
-        nextX = 0
-    }
-    console.log("nextY:", nextY)
-    if (nextY >= grid.length) {
-        process.exit(0);
-        return ["Done", grid]
-    }
-    nextStart = [nextX, nextY]
-    console.log("running findBlanks again...")
-    console.log("nextStart:", nextStart)
-    console.log("tempWords:", tempWords)
-    return findBlanks(grid, tempWords, nextStart)
+        return "Error";
+    } */
+   return "Error"
 }
 
 function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
@@ -315,7 +313,7 @@ function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
 
     if (xBlankLength > 0) {
         for (let _; tempX < x + xBlankLength; tempX++) {
-            if (/* (grid[tempY][tempX][1] !== xMatch[wordInd]) ||  */grid[tempY][tempX].length === 1) {
+            if (grid[tempY][tempX].length === 1) {
                 grid[tempY][tempX] += xMatch[wordInd];
             }
             wordInd++;
@@ -328,26 +326,39 @@ function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
 
     if (yBlankLength > 0) {
         for (let _; tempY < y + yBlankLength; tempY++) {
-            if (/* !(wordInd === 0 && xBlankLength > 0) && grid[tempY][tempX][1] !== xMatch[wordInd] ||  */grid[tempY][tempX].length === 1) {
+            if (grid[tempY][tempX].length === 1) {
                 grid[tempY][tempX] += yMatch[wordInd];
             }
             wordInd++;
         }
     }
 
-    //  Call recursive func here???
+    return grid
 }
 
-function findRightWord(grid, x, y, words, direction) {
+function findRightWord(grid, x, y, words, direction, nextStart, xBlankLength, yBlankLength, x, y) {
     let startingLetter = grid[y][x][1]; // The already assigned letter
     let possibleWords = words.filter(word => word[0] === startingLetter);
     for (let word of possibleWords) {
         if (canFit(word, grid, x, y, direction)) {
-            return word;
+            return recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, word, "")
         }
     }
+    return "Error"; // No valid word found
+}
 
-    return null; // No valid word found
+function recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, matches) {
+    let newWords = words.filter(word => (word !== matches[0] && word !== matches[1]));
+    let gridNew = appendLetters(grid, xBlankLength, yBlankLength, x, y, matches[0], matches[1]);
+    console.log("Trying word(s):", matches)
+    console.log("New grid:", gridNew)
+    let output = findBlanks(gridNew, newWords, nextStart)
+    console.log("Backtracking")
+    if (output[0] === "Done") {
+        return output
+    }
+    console.log("Returning Error")
+    return "Error"
 }
 
 function canFit(word, grid, x, y, direction) {
@@ -396,7 +407,7 @@ function solve(grid) {
 }
 
 const puzzle1 = '2001\n0..0\n1000\n0..0'
-const words1 = ['casa', 'alan', 'ciao', 'anta']
+const words1 = ['anta', 'alan', 'casa', 'ciao', ]//.reverse()
 
 /* output: `
 casa
@@ -434,8 +445,94 @@ const words2 = [
     'sandals',
 ]
 
-//console.log(crosswordSolver(puzzle1, words1));
-console.log(crosswordSolver(puzzle2, words2));
+const puzzle3 = `..1.1..1...
+10000..1000
+..0.0..0...
+..1000000..
+..0.0..0...
+1000..10000
+..0.1..0...
+....0..0...
+..100000...
+....0..0...
+....0......`
+const words3 = [
+  'popcorn',
+  'fruit',
+  'flour',
+  'chicken',
+  'eggs',
+  'vegetables',
+  'pasta',
+  'pork',
+  'steak',
+  'cheese',
+]
+
+const puzzle4 = `...1...........
+..1000001000...
+...0....0......
+.1......0...1..
+.0....100000000
+100000..0...0..
+.0.....1001000.
+.0.1....0.0....
+.10000000.0....
+.0.0......0....
+.0.0.....100...
+...0......0....
+..........0....`
+const words4 = [
+  'sun',
+  'sunglasses',
+  'suncream',
+  'swimming',
+  'bikini',
+  'beach',
+  'icecream',
+  'tan',
+  'deckchair',
+  'sand',
+  'seaside',
+  'sandals',
+].reverse()
+
+const puzzle5 = '2001\n0..0\n2000\n0..0'
+const words5 = ['casa', 'alan', 'ciao', 'anta']
+
+const puzzle6 = '0001\n0..0\n3000\n0..0'
+const words6 = ['casa', 'alan', 'ciao', 'anta']
+
+const puzzle7 = '2001\n0..0\n1000\n0..0'
+const words7 = ['casa', 'casa', 'ciao', 'anta']
+
+const puzzle8 = ''
+const words8 = ['casa', 'alan', 'ciao', 'anta']
+
+const puzzle9 = 123
+const words9 = ['casa', 'alan', 'ciao', 'anta']
+
+const puzzle10 = ''
+const words10 = 123
+
+const puzzle11 = '2000\n0...\n0...\n0...'
+const words11 = ['abba', 'assa']
+
+const puzzle12 = '2001\n0..0\n1000\n0..0'
+const words12 = ['aaab', 'aaac', 'aaad', 'aaae']
+
+console.log(crosswordSolver(puzzle1, words1)); //Works
+//console.log(crosswordSolver(puzzle2, words2)); //Works
+//console.log(crosswordSolver(puzzle3, words3)); //Works
+//console.log(crosswordSolver(puzzle4, words4)); //DOES NOT WORK
+//console.log(crosswordSolver(puzzle5, words5)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle6, words6)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle7, words7)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle8, words8)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle9, words9)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle10, words10)); //Outputs Error correctly
+//console.log(crosswordSolver(puzzle11, words11)); //DOES NOT WORK (Multiple solutions still works)
+//console.log(crosswordSolver(puzzle12, words12)); //DOES NOT WORK (Multiple solutions still works)
 
 //export to test
 module.exports = { crosswordSolver };
