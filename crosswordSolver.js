@@ -85,7 +85,7 @@ function hasNoDupes(words) {
 }
 
 function createGrid(puzzle) {
-    let grid = puzzle.split("\n").map(line => line.split(""));
+    let grid = puzzle.trim().split("\n").map(line => line.split(""));
     return grid;
 }
 
@@ -101,13 +101,16 @@ function findBlanks(grid, words, startAt) {
                 continue
             } else if (output === "Error") {
                 return "Error"
+            } else if (output[0] === "Done") {
+                console.log("Done")
+                return output
             } else {
                 grid = output
             }
         }
         x = 0
     }
-    return grid
+    return ["Done", grid]
 }
 
 function findBlankLength(grid, words, n, x, y) {
@@ -134,6 +137,8 @@ function findBlankLength(grid, words, n, x, y) {
             output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
             if (output === "Error") {
                 return "Error";
+            } else if (output[0] === "Done") {
+                return output
             } else {
                 grid = output
             }
@@ -145,6 +150,8 @@ function findBlankLength(grid, words, n, x, y) {
             output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
             if (output === "Error") {
                 return "Error";
+            } else if (output[0] === "Done") {
+                return output
             } else {
                 grid = output
             }
@@ -163,6 +170,8 @@ function findBlankLength(grid, words, n, x, y) {
         output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y)
         if (output === "Error") {
             return "Error";
+        } else if (output[0] === "Done") {
+            return output
         } else {
             grid = output
         }
@@ -242,20 +251,17 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
                     xMatch = tempWords[i];
                     console.log("Set xMatch to:", xMatch)
                 }
-                tempWords = tempWords.filter(word => word !== tempWords[i]);
             } else if (tempWords[i].length === yBlankLength && yMatch === "") { //if going down
                 if (findPair && (matchLetter === tempWords[i][0])) { //if 2
                     if (canFit(tempWords[i], grid, x, y, "vertical")) {
                         yMatch = tempWords[i];
                         console.log("Set yMatch to:", yMatch)
                     }
-                    tempWords = tempWords.filter(word => word !== tempWords[i]);
                 } else if (!findPair) { //if 1
                     if (canFit(tempWords[i], grid, x, y, "vertical")) {
                         yMatch = tempWords[i];
                         console.log("Set yMatch to:", yMatch)
                     }
-                    tempWords = tempWords.filter(word => word !== tempWords[i]);
                 }
             }
             if ((yMatch !== "") && !findPair) {
@@ -267,6 +273,16 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
             }
         }
     }
+    if (xMatch === null || yMatch === null) {
+        return "Error"
+    }
+    if (xBlankLength > 0 && xMatch === "") {
+        return "Error"; // or handle backtracking
+    }
+    if (yBlankLength > 0 && yMatch === "") {
+        return "Error"; // or handle backtracking
+    }
+    tempWords = tempWords.filter(word => (word !== xMatch && word !== yMatch));
     appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch);
     console.log("findPair:", findPair)
     console.log("xMatch:", xMatch)
@@ -279,8 +295,10 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y) {
         nextY++
         nextX = 0
     }
+    console.log("nextY:", nextY)
     if (nextY >= grid.length) {
-        return grid
+        process.exit(0);
+        return ["Done", grid]
     }
     nextStart = [nextX, nextY]
     console.log("running findBlanks again...")
@@ -416,7 +434,7 @@ const words2 = [
     'sandals',
 ]
 
-console.log(crosswordSolver(puzzle1, words1));
+//console.log(crosswordSolver(puzzle1, words1));
 console.log(crosswordSolver(puzzle2, words2));
 
 //export to test
