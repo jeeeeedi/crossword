@@ -1,35 +1,32 @@
 function crosswordSolver(puzzle, words) {
-
+    global.solutions = []
     let nonzeroes = getNonzeroes(puzzle.toString());
-
     if (isNotEmpty(puzzle) && isNotEmpty(words) &&
         isPuzzleCharsOk(puzzle) && isWordsCharsOk(words) &&
         sumNonzeroes(nonzeroes) === words.length &&
         hasNoDupes(words) &&
         isTwoOrLess(nonzeroes)) {
         let grid = createGrid(puzzle);
-        findBlanks(grid, words);
-
-        return solve(puzzle, words);
+        let start = [0, 0]
+        findBlanks(grid, words, start);
+        //  For checking multiple solutions:
+        for (let i = 0; i < global.solutions.length; i++) {
+            //console.log(solve(global.solutions[i][1]));
+        }
+        if (global.solutions.length === 1) {
+            return solve(global.solutions[0][1]);
+        } else {
+            return "Error"
+        }
     } else {
         return "Error";
     }
-
 }
 
-//errors:
-//ok- look for numbers not 0, if the total is not eq to the number of words, then error
-//ok- no repeated words
-//ok- puzzle != ''
-//ok- puzzle should contain only numbers, '.', '\n'
-//ok- word should be an array of strings containing only letters
-//unique solution?
+/* ===== INPUT VALIDATION FUNCTIONS ===== */
 
 function isNotEmpty(x) {
-    if (x.length === 0) {
-        return false;
-    }
-    return true;
+    return x.length !== 0
 }
 
 function isPuzzleCharsOk(puzzle) {
@@ -92,275 +89,349 @@ function hasNoDupes(words) {
     return true; // No duplicates
 }
 
-//algorigthm:
-//if number is not 0, that is a starting point.
-//indexN: need to count how many words have the same first letter.
-//number != 0 look for a match with indexN
-//if you encounter another nonzero, check if that letter could be a starting letter, and check if it has the right qty
-//if not, go back and try another; if you cant find others, error --- backtracking?
-//
+/* ===== SMALL HELPER FUNCTIONS ===== */
 
 function createGrid(puzzle) {
-    let grid = puzzle.split("\n").map(line => line.split(""));
-    console.log(grid);
+    let grid = puzzle.trim().split("\n").map(line => line.split(""));
+    //check if all grid rows have the same length
+    for (let i = 1; i < grid.length; i++) {
+        if (grid[0].length !== grid[i].length) {
+            return "Error";
+        }
+    }
     return grid;
 }
 
-function findBlanks(grid, words) {
-    for (let y = 0; y < grid.length; y++) {
-        for (let x = 0; x < grid[y].length; x++) {
-            if (grid[y][x][0] === '2') {
-                console.log("2 at:", x, y);
-                findBlankLength(grid, '2', x, y, words)
-            } else if (grid[y][x][0] === '1') {
-                console.log("1 at:", x, y);
-                findBlankLength(grid, '1', x, y, words)
+function copyArray(array, kind) {
+    var newArray = [];
+    if (kind === "grid") {
+        for (var i = 0; i < array.length; i++) {
+            newArray.push(array[i].slice());
+        }
+    } else if (kind === "start") {
+        for (var i = 0; i < array.length; i++) {
+            newArray.push(array[i]);
+        }
+    }
+    return newArray;
+}
+
+function getNextStart(x, y, grid) {
+    let nextX = x + 1
+    let nextY = y
+    if (nextX >= grid[0].length) {
+        nextY++
+        nextX = 0
+    }
+    //console.log("Setting next start to:", nextX, nextY)
+    return [nextX, nextY]
+}
+
+function decrementNextStart(nextStart, grid, revert) {
+    //console.log("From next x and y being:", nextStart)
+    let nextX = nextStart[0]
+    let nextY = nextStart[1]
+    while (revert > 0) {
+        nextX--
+        if (nextX < 0) {
+            if (nextY > 0) {
+                nextY = nextY - 1
+            }
+            nextX = grid[0].length - 1
+        }
+        revert--
+    }
+    /*     if (nextY === 0 && nextX === 0) {
+            nextX = 1
+        } */
+    //console.log("We decrement next start to:", nextX, nextY)
+    return [nextX, nextY]
+}
+
+/* ===== SOLVING HELPERS ===== */
+
+function counter(grid, x, y, direction) {
+    let n = /[012]/g;
+    let count = 0;
+    if (direction === "goDown") {
+        for (let _; y < grid.length; y++) {
+            if (grid[y][x][0].match(n)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+    } else if (direction === "goRight") {
+        for (let _; x < grid[y].length; x++) {
+            if (grid[y][x][0].match(n)) {
+                count++;
+            } else {
+                break;
             }
         }
     }
+    return count;
 }
 
-function findBlankLength(grid, int, x, y, words) {
+function checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, letter) {
+    if (xBlankLength !== 0) {
+        return findRightWord(grid, x, y, tempWords, "horizontal", nextStart, xBlankLength, yBlankLength, letter);
+    } else if (yBlankLength !== 0) {
+        return findRightWord(grid, x, y, tempWords, "vertical", nextStart, xBlankLength, yBlankLength, letter);
+    }
+    return "Error"
+}
+
+function canFit(word, grid, x, y, direction, xBlankLength, yBlankLength) {
+    let length = word.length;
+    if (direction === "horizontal") {
+        if ((x + length > grid[y].length) || (length !== xBlankLength)) return false; // Out of bounds
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y][x + i];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    } else if (direction === "vertical") {
+        if ((y + length > grid.length) || (length !== yBlankLength)) return false; // Out of bounds
+        for (let i = 0; i < length; i++) {
+            let cell = grid[y + i][x];
+            if (cell.length > 1 && cell[1] !== word[i]) {
+                return false; // Conflict in existing letters
+            }
+        }
+    }
+    return true;
+}
+
+function appendLetters(grid, xBlankLength, yBlankLength, x, y, xMatch, yMatch) {
+    //append letters to the nums/blanks
+    let wordInd = 0;
+    let tempX = x;
+    let tempY = y;
+    if (xBlankLength > 0) {
+        for (let _; tempX < x + xBlankLength; tempX++) {
+            if (grid[tempY][tempX].length === 1) {
+                grid[tempY][tempX] += xMatch[wordInd];
+            }
+            wordInd++;
+        }
+    }
+    wordInd = 0;
+    tempX = x;
+    tempY = y;
+    if (yBlankLength > 0) {
+        for (let _; tempY < y + yBlankLength; tempY++) {
+            if (grid[tempY][tempX].length === 1) {
+                grid[tempY][tempX] += yMatch[wordInd];
+            }
+            wordInd++;
+        }
+    }
+    return grid
+}
+
+/* ===== SOLVING FUNCTIONS ===== */
+
+function findBlanks(grid, words, startAt) {
+    //  Added startAt for not looking at the same number forever (move to the word to be matched)
+    //console.log(grid)
+    let x = startAt[0]
+    let y = startAt[1]
+    let revert = 1
+    //console.log("Starting at:", x, y)
+    for (let _; y < grid.length; y++) {
+        for (let _; x < grid[y].length; x++) {
+            //console.log("Looking at x:", x, "y:", y, "with character(s):", grid[y][x])
+            let output = findBlankLength(grid, words, grid[y][x][0], x, y, revert)
+            if (output === "Error") {
+                return "Error"
+            } else {
+                grid = output
+            }
+            revert++
+        }
+        x = 0
+    }
+    if (words.length === 0) {
+        //console.log(grid)
+        global.solutions.push(["Done", grid])
+        /* if (global.solutions.length > 1) {
+            //console.log("Error")
+            process.exit(0);
+        } */
+    } else {
+        return "Error"
+    }
+}
+
+function findBlankLength(grid, words, n, x, y, revert) {
     let xBlankLength = 0;
     let yBlankLength = 0;
-    let goRight = false;
-    let goDown = false;
-    let originalX = x;
-    let originalY = y;
-    if (int === '1') {
-        if (originalX - 1 >= 0 && grid[originalY][originalX - 1][0] !== '.') {//check if left is nums
-            if (originalY - 1 >= 0 && grid[originalY - 1][originalX][0] !== '.') { //check up
-                return "Error";
-            } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
-                goDown = true;
-            } else {
-                return "Error";
-            }
-        } else if (originalY - 1 >= 0 && grid[originalY - 1][originalX][0] !== '.') {//check if up is nums
-            if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1][0] !== '.') { //check right
-                goRight = true;
-            } else {
-                return "Error";
-            }
-        } else if (originalX + 1 < grid[originalY].length && grid[originalY][originalX + 1][0] !== '.') {//check right
-            if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
-                return "Error";
-            } else {
-                goRight = true;
-            }
-        } else if (originalY + 1 < grid.length && grid[originalY + 1][originalX][0] !== '.') { //check down
-            goDown = true;
-        } else {
-            return "Error";
-        }
-        if (goRight) {
-            for (let _; x < grid[originalY].length; x++) {
-                if (grid[originalY][x][0] !== '0' && grid[originalY][x][0] !== '1' && grid[originalY][x][0] !== '2') {
-                    break;
-                } else {
-                    xBlankLength++;
-                }
-            }
-        } else if (goDown) {
-            for (let _; y < grid.length; y++) {
-                if (grid[y][originalX][0] !== '0' && grid[y][originalX][0] !== '1' && grid[y][originalX][0] !== '2') {
-                    break;
-                } else {
-                    yBlankLength++;
-                }
-            }
-        }
 
-    } else if (int === '2') {
-        for (let _; x < grid[originalY].length; x++) {
-            if (grid[originalY][x][0] !== '0' && grid[originalY][x][0] !== '1' && grid[originalY][x][0] !== '2') {
-                break;
-            } else {
-                xBlankLength++;
-            }
+    //check if cells in each direction is valid
+    let isLeftNum = ((x - 1 >= 0) && grid[y][x - 1] && grid[y][x - 1][0] !== '.') ? true : false;
+    let isUpNum = ((y - 1 >= 0) && grid[y - 1][x] && grid[y - 1][x][0] !== '.') ? true : false;
+    let isRightNum = ((x + 1 < grid[y].length) && grid[y][x + 1] && grid[y][x + 1] !== '.') ? true : false;
+    let isDownNum = ((y + 1 < grid.length) && grid[y + 1][x] && grid[y + 1][x] !== '.') ? true : false;
+
+    if (n === '1') {
+        if (isLeftNum && isUpNum) {
+            return "Error"
         }
-        for (let _; y < grid.length; y++) {
-            if (grid[y][originalX][0] !== '0' && grid[y][originalX][0] !== '1' && grid[y][originalX][0] !== '2') {
-                break;
+        if (!isUpNum && isDownNum) {
+            yBlankLength = counter(grid, x, y, "goDown");
+        }
+        if (!isLeftNum && isRightNum) {
+            xBlankLength = counter(grid, x, y, "goRight");
+        }
+        let output = matchWordLength(grid, words, 0, yBlankLength, x, y, revert)
+        if (output === "Error") {
+            output = matchWordLength(grid, words, xBlankLength, 0, x, y, revert)
+            if (output === "Error") {
+                return "Error"
             } else {
-                yBlankLength++;
+                grid = output
             }
+        } else {
+            grid = output
+        }
+        return "Error";
+    } else if (n === '2') {
+        if (isLeftNum || isUpNum) {
+            return "Error"
+        }
+        xBlankLength = counter(grid, x, y, "goRight");
+        yBlankLength = counter(grid, x, y, "goDown");
+        let output = matchWordLength(grid, words, xBlankLength, yBlankLength, x, y, revert)
+        if (output === "Error") {
+            return "Error";
+        } else {
+            grid = output
         }
     }
-    matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, originalY)
+    return grid
 }
 
-/* function checkLetters(word, ) {
-    //loop thru grid, find 
-    let x = originalX
-    let y = originalY
-    let wordInd = 0
-    //  grid[y][x][0]
-
-    if (xBlankLength > 0) {
-        for (let _; x < originalX+xBlankLength; x++) {
-            grid[y][x] += xMatch[wordInd]
-            wordInd++
-        }
-    }
-    wordInd = 0
-    x = originalX
-    y = originalY
-    if (yBlankLength > 0) {
-        for (let _; y < originalY+yBlankLength; y++) {
-            if (!(wordInd === 0 && xBlankLength > 0)) {
-            grid[y][x] += yMatch[wordInd]
-            }
-            wordInd++
-        }
-    }
-} */
-
-function matchWordLength(grid, words, xBlankLength, yBlankLength, originalX, originalY) {
+function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y, revert) {
     let findPair = false;
-    let matchLetter = "";
-
+    let tempWords = words;
+    //console.log("xBlankL:", xBlankLength)
+    //console.log("yBlankL:", yBlankLength)
     if (xBlankLength !== 0 && yBlankLength !== 0) {
         findPair = true;
     }
-
-    let xMatch = "";
-    let yMatch = "";
-
-    for (let i = 0; i < words.length; i++) {
-        if (words[i].length === xBlankLength && xMatch === "") {
-            console.log("matches x: ", words[i]);
-            if (findPair) {
-                matchLetter = words[i][0];
-            }
-            xMatch = words[i];
-            words = words.filter(word => word !== words[i]);
-        } else if (words[i].length === yBlankLength && yMatch === "") {
-            if (findPair && (matchLetter === words[i][0])) {
-                console.log("matches y: ", words[i]);
-                yMatch = words[i];
-                words = words.filter(word => word !== words[i]);
-            } else if (!findPair) {
-                console.log("matches y: ", words[i]);
-                yMatch = words[i];
-                words = words.filter(word => word !== words[i]);
-            }
-        }
-        if ((yMatch !== "") && !findPair) {
-            console.log("Matched down:", yMatch);
-            break;
-        } else if ((xMatch !== "") && !findPair) {
-            console.log("Matched right: ", xMatch);
-            break;
-        } else if (xMatch !== "" && yMatch !== "" && findPair) {
-            console.log("Pair:");
-            console.log(xMatch);
-            console.log(yMatch);
-            break;
-        }
+    nextStart = getNextStart(x, y, grid)
+    // This if might not be needed
+    if (nextStart[1] >= grid.length && tempWords.length === 0) {
+        return grid
     }
-
-    let x = originalX;
-    let y = originalY;
-    let wordInd = 0;
-
-    if (xBlankLength > 0) {
-        for (let _; x < originalX + xBlankLength; x++) {
-            grid[y][x] += xMatch[wordInd];
-            wordInd++;
+    // If there's a letter in the slot, find a word that starts with that letter
+    if (grid[y][x].length === 2) {
+        //console.log("Letter already in slot:", x, y, "letter:", grid[y][x][1])
+        let output = checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, grid[y][x][1])
+        if (output !== "Error") {
+            return output;
+        } else {
+            nextStart = decrementNextStart(nextStart, grid, revert)
+            //console.log("No words starting with", grid[y][x][1], "found.")
         }
-    }
-
-    wordInd = 0;
-    x = originalX;
-    y = originalY;
-
-    if (yBlankLength > 0) {
-        for (let _; y < originalY + yBlankLength; y++) {
-            if (!(wordInd === 0 && xBlankLength > 0)) {
-                grid[y][x] += yMatch[wordInd];
-            }
-            wordInd++;
-        }
-    }
-
-    //  Call recursive func here
-
-    console.log(words)
-    console.log(grid)
-}
-
-
-
-//partial solution putting characters into blanks
-function solve(puzzle, words) {
-    let result = '';
-    let wordIndex = 0;
-    let charIndex = 0;
-
-    let isNum = /[0-9]/g;
-
-    for (let p = 0; p < puzzle.length; p++) {
-        if (puzzle[p].match(isNum)) {
-            let num = Number(puzzle[p]);
-            if (num >= 0 && wordIndex < words.length) {
-                result += words[wordIndex][charIndex];
-                charIndex++;
-                if (charIndex >= words[wordIndex].length) {
-                    wordIndex++;
-                    charIndex = 0;
-                }
+    } else {
+        if (!findPair) {
+            let output = checkBlankLengths(grid, x, y, tempWords, nextStart, xBlankLength, yBlankLength, null)
+            if (output !== "Error") {
+                return output;
             } else {
-                result += puzzle[p];
+                nextStart = decrementNextStart(nextStart, grid, revert)
+                //console.log("No fitting words found.")
             }
         } else {
-            result += puzzle[p];
+            // If we need a pair, try all combinations of two words.
+            for (let i = 0; i < tempWords.length; i++) {
+                //console.log("Testing:", tempWords[i])
+                if (canFit(tempWords[i], grid, x, y, "horizontal", xBlankLength, yBlankLength)) {
+                    for (let j = 0; j < tempWords.length; j++) {
+                        if (i === j) {
+                            continue;
+                        }
+                        //console.log("With:", tempWords[j])
+                        if (canFit(tempWords[j], grid, x, y, "vertical", xBlankLength, yBlankLength)) {
+                            if (tempWords[i][0] === tempWords[j][0]) {
+                                let matches = [tempWords[i], tempWords[j]];
+                                let output = recurseWords(grid, tempWords, nextStart, xBlankLength, yBlankLength, x, y, matches);
+                                if (output !== "Error") {
+                                    return output;
+                                } else {
+                                    //console.log("Still testing:", tempWords[i])
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            nextStart = decrementNextStart(nextStart, grid, revert)
+        }
+    }
+    return "Error"
+}
+
+function findRightWord(grid, x, y, words, direction, nextStart, xBlankLength, yBlankLength, startingLetter) {
+    let possibleWords = words
+    if (startingLetter !== null) {
+        possibleWords = words.filter(word => word[0] === startingLetter);
+    }
+    for (let word of possibleWords) {
+        //console.log("Checking if", word, "fits into", x, y, "going", direction)
+        if (canFit(word, grid, x, y, direction, xBlankLength, yBlankLength)) {
+            //console.log("It does!")
+            let matches = []
+            if (direction === "horizontal") {
+                matches = [word, ""]
+            } else {
+                matches = ["", word]
+            }
+            let output = recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, matches)
+            if (output !== "Error") {
+                return output
+            }
+        }
+    }
+    return "Error"
+}
+
+function recurseWords(grid, words, nextStart, xBlankLength, yBlankLength, x, y, matches) {
+    let newWords = words.filter(word => (word !== matches[0] && word !== matches[1]));
+    let newGrid = copyArray(grid, "grid")
+    let newNextStart = copyArray(nextStart, "start")
+    newGrid = appendLetters(newGrid, xBlankLength, yBlankLength, x, y, matches[0], matches[1]);
+    findBlanks(newGrid, newWords, newNextStart)
+    return "Error"
+}
+
+/* ===== FINAL FORMATTING FUNCTION ===== */
+
+function solve(grid) {
+    //console.log(grid)
+    let result = "";
+    for (let g = 0; g < grid.length; g++) {
+        for (let i = 0; i < grid[g].length; i++) {
+            if (grid[g][i][0] === '0' || grid[g][i][0] === '1' || grid[g][i][0] === '2') {
+                grid[g][i] = grid[g][i][1];
+            }
+            result += grid[g][i];
+        }
+        if (g !== grid.length - 1) {
+            result += "\n";
         }
     }
     return result;
 }
 
-const puzzle1 = '2001\n0..0\n1000\n0..0'
-const words1 = ['casa', 'alan', 'ciao', 'anta']
-
-/* output: `
-casa
-i..l
-anta
-o..n`
-*/
-
-const puzzle2 = `
-...1...........
-..1000001000...
-...0....0......
-.1......0...1..
-.0....100000000
-100000..0...0..
-.0.....1001000.
-.0.1....0.0....
-.10000000.0....
-.0.0......0....
-.0.0.....100...
-...0......0....
-..........0....`
-const words2 = [
-    'sun',
-    'sunglasses',
-    'suncream',
-    'swimming',
-    'bikini',
-    'beach',
-    'icecream',
-    'tan',
-    'deckchair',
-    'sand',
-    'seaside',
-    'sandals',
-]
-
-console.log(crosswordSolver(puzzle1, words1));
-//console.log(crosswordSolver(puzzle2, words2));
-
 //export to test
 module.exports = { crosswordSolver };
+
+//Insert cases here that you want to print to the console
+/* const puzzle = '2001\n0..0\n1000\n0..0'
+const words = ['casa', 'alan', 'ciao', 'anta']
+
+console.log(crosswordSolver(puzzle, words)); */
