@@ -93,6 +93,12 @@ function hasNoDupes(words) {
 
 function createGrid(puzzle) {
     let grid = puzzle.trim().split("\n").map(line => line.split(""));
+    //check if all grid rows have the same length
+    for (let i = 1; i < grid.length; i++) {
+        if (grid[0].length !== grid[i].length) {
+            return "Error";
+        }
+    }
     return grid;
 }
 
@@ -121,7 +127,7 @@ function getNextStart(x, y, grid) {
     return [nextX, nextY]
 }
 
-function deceremntNextStart(nextStart, grid, revert) {
+function decrementNextStart(nextStart, grid, revert) {
     //console.log("From next x and y being:", nextStart)
     let nextX = nextStart[0]
     let nextY = nextStart[1]
@@ -135,9 +141,9 @@ function deceremntNextStart(nextStart, grid, revert) {
         }
         revert--
     }
-/*     if (nextY === 0 && nextX === 0) {
-        nextX = 1
-    } */
+    /*     if (nextY === 0 && nextX === 0) {
+            nextX = 1
+        } */
     //console.log("We decrement next start to:", nextX, nextY)
     return [nextX, nextY]
 }
@@ -280,16 +286,16 @@ function findBlankLength(grid, words, n, x, y, revert) {
             xBlankLength = counter(grid, x, y, "goRight");
         }
         let output = matchWordLength(grid, words, 0, yBlankLength, x, y, revert)
+        if (output === "Error") {
+            output = matchWordLength(grid, words, xBlankLength, 0, x, y, revert)
             if (output === "Error") {
-                output = matchWordLength(grid, words, xBlankLength, 0, x, y, revert)
-                if (output === "Error") {
-                    return "Error"
-                } else {
-                    grid = output
-                }
+                return "Error"
             } else {
                 grid = output
             }
+        } else {
+            grid = output
+        }
         return "Error";
     } else if (n === '2') {
         if (isLeftNum || isUpNum) {
@@ -327,7 +333,7 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y, revert) 
         if (output !== "Error") {
             return output;
         } else {
-            nextStart = deceremntNextStart(nextStart, grid, revert)
+            nextStart = decrementNextStart(nextStart, grid, revert)
             //console.log("No words starting with", grid[y][x][1], "found.")
         }
     } else {
@@ -336,7 +342,7 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y, revert) 
             if (output !== "Error") {
                 return output;
             } else {
-                nextStart = deceremntNextStart(nextStart, grid, revert)
+                nextStart = decrementNextStart(nextStart, grid, revert)
                 //console.log("No fitting words found.")
             }
         } else {
@@ -363,7 +369,7 @@ function matchWordLength(grid, words, xBlankLength, yBlankLength, x, y, revert) 
                     }
                 }
             }
-            nextStart = deceremntNextStart(nextStart, grid, revert)
+            nextStart = decrementNextStart(nextStart, grid, revert)
         }
     }
     return "Error"
@@ -421,223 +427,11 @@ function solve(grid) {
     return result;
 }
 
-const puzzle1 = '2001\n0..0\n1000\n0..0'
-const words1 = ['casa', 'alan', 'ciao', 'anta']
-
-const puzzle2 = `
-...1...........
-..1000001000...
-...0....0......
-.1......0...1..
-.0....100000000
-100000..0...0..
-.0.....1001000.
-.0.1....0.0....
-.10000000.0....
-.0.0......0....
-.0.0.....100...
-...0......0....
-..........0....`
-const words2 = [
-    'sun',
-    'sunglasses',
-    'suncream',
-    'swimming',
-    'bikini',
-    'beach',
-    'icecream',
-    'tan',
-    'deckchair',
-    'sand',
-    'seaside',
-    'sandals',
-]
-
-const puzzle3 = `..1.1..1...
-10000..1000
-..0.0..0...
-..1000000..
-..0.0..0...
-1000..10000
-..0.1..0...
-....0..0...
-..100000...
-....0..0...
-....0......`
-const words3 = [
-    'popcorn',
-    'fruit',
-    'flour',
-    'chicken',
-    'eggs',
-    'vegetables',
-    'pasta',
-    'pork',
-    'steak',
-    'cheese',
-]
-
-const puzzle4 = `...1...........
-..1000001000...
-...0....0......
-.1......0...1..
-.0....100000000
-100000..0...0..
-.0.....1001000.
-.0.1....0.0....
-.10000000.0....
-.0.0......0....
-.0.0.....100...
-...0......0....
-..........0....`
-const words4 = [
-    'sun',
-    'sunglasses',
-    'suncream',
-    'swimming',
-    'bikini',
-    'beach',
-    'icecream',
-    'tan',
-    'deckchair',
-    'sand',
-    'seaside',
-    'sandals',
-].reverse()
-
-const puzzle5 = '2001\n0..0\n2000\n0..0'
-const words5 = ['casa', 'alan', 'ciao', 'anta']
-
-const puzzle6 = '0001\n0..0\n3000\n0..0'
-const words6 = ['casa', 'alan', 'ciao', 'anta']
-
-const puzzle7 = '2001\n0..0\n1000\n0..0'
-const words7 = ['casa', 'casa', 'ciao', 'anta']
-
-const puzzle8 = ''
-const words8 = ['casa', 'alan', 'ciao', 'anta']
-
-const puzzle9 = 123
-const words9 = ['casa', 'alan', 'ciao', 'anta']
-
-const puzzle10 = ''
-const words10 = 123
-
-const puzzle11 = '2000\n0...\n0...\n0...'
-const words11 = ['abba', 'assa']
-
-const puzzle12 = '2001\n0..0\n1000\n0..0'
-const words12 = ['aaab', 'aaac', 'aaad', 'aaae']
-
-const puzzleA =
-    "2010\n" +  
-    "0.0.\n" +  
-    "1000\n" +  
-    "0.0.";     
-
-const wordsA = ['dove', 'deer', 'vase', 'easy'];
-
-const puzzleB =
-    "1010\n" +  
-    "1000\n" +  
-    "1000\n" +  
-    "..0.";     
-
-const wordsB = ['knee', 'lard', 'area', 'pear'];
-
-const puzzleC =
-    "2001\n" +  
-    "0..0\n" +
-    "1000\n" +  
-    "0..0";     
-
-const wordsC = ['door', 'dork', 'oats', 'kiss'];
-
-const puzzleD =
-    "2010\n" +  
-    "0.0.\n" +
-    "100.\n" +
-    "..0.";
-const wordsD = ['mars', 'met', 'rats', 'tnt'];
-
-// 18 across
-// 14 down
-// melon and lemon interchangable, should return error
-const puzzleE =
-    "........1.........\n" +
-    ".....1..0...1.....\n" +
-    ".....0.1000000....\n" +
-    "100000..0...0.....\n" +
-    ".....0..0...0.....\n" +
-    "....1000000.0.....\n" +
-    ".....0..0.....1.1.\n" +
-    "..1000..1000000000\n" +
-    ".....0........0.0.\n" +
-    "....100010100.0.0.\n" +
-    ".....0..0.0...0.0.\n" +
-    "........0.0.....0.\n" +
-    "........0.0.......\n" +
-    "........0.........\n";
-const wordsE = ['strawberry', 'grapes', 'lemon', 'melon', 'peaches', 'plum', 'pineapple', 'apple', 'grapefruit', 'banana', 'berries', 'pear', 'cherries'];
-
-// lemon removed, should return solution
-const puzzleF =
-    "........1.........\n" +
-    ".....1..0.........\n" +
-    ".....0.1000000....\n" +
-    "100000..0.........\n" +
-    ".....0..0.........\n" +
-    "....1000000.......\n" +
-    ".....0..0.....1.1.\n" +
-    "..1000..1000000000\n" +
-    ".....0........0.0.\n" +
-    "....100010100.0.0.\n" +
-    ".....0..0.0...0.0.\n" +
-    "........0.0.....0.\n" +
-    "........0.0.......\n" +
-    "........0.........\n";
-const wordsF = ['strawberry', 'grapes', 'melon', 'peaches', 'plum', 'pineapple', 'apple', 'grapefruit', 'banana', 'berries', 'pear', 'cherries'];
-
-// lemon removed (different spot), should return solution
-const puzzleG =
-    "........1.........\n" +
-    ".....1..0...1.....\n" +
-    ".....0.1000000....\n" +
-    "100000..0...0.....\n" +
-    ".....0..0...0.....\n" +
-    "....1000000.0.....\n" +
-    ".....0..0.......1.\n" +
-    "..1000..1000000000\n" +
-    ".....0..........0.\n" +
-    "....100010100...0.\n" +
-    ".....0..0.0.....0.\n" +
-    "........0.0.....0.\n" +
-    "........0.0.......\n" +
-    "........0.........\n";
-const wordsG = ['strawberry', 'grapes', 'melon', 'peaches', 'plum', 'pineapple', 'apple', 'grapefruit', 'banana', 'berries', 'pear', 'cherries'];
-
-
-
-//console.log(crosswordSolver(puzzle1, words1)); //Works
-//console.log(crosswordSolver(puzzle2, words2)); //Works
-//console.log(crosswordSolver(puzzle3, words3)); //Works
-console.log(crosswordSolver(puzzle4, words4)); //Works
-//console.log(crosswordSolver(puzzle5, words5)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle6, words6)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle7, words7)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle8, words8)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle9, words9)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle10, words10)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle11, words11)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzle12, words12)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzleA, wordsA)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzleB, wordsB)); //Works
-//console.log(crosswordSolver(puzzleC, wordsC)); //Works
-//console.log(crosswordSolver(puzzleD, wordsD)); //Works
-//console.log(crosswordSolver(puzzleE, wordsE)); //Outputs Error correctly
-//console.log(crosswordSolver(puzzleF, wordsF)); //Works
-//console.log(crosswordSolver(puzzleG, wordsG)); //Works
-
-
 //export to test
 module.exports = { crosswordSolver };
+
+//Insert cases here that you want to print to the console
+/* const puzzle = '2001\n0..0\n1000\n0..0'
+const words = ['casa', 'alan', 'ciao', 'anta']
+
+console.log(crosswordSolver(puzzle, words)); */
